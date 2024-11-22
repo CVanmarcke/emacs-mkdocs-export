@@ -1,0 +1,37 @@
+
+* Introduction
+This is a docker file containing =emacs= and the necessary packages to export to =mkdocs=.
+
+* How to use
+
+First build the docker container:
+** Docker compose
+
+Run the following with =docker compose run emacs-mkdocs-export= or =docker compose run --rm emacs-mkdocs-export=.
+
+#+BEGIN_SRC yaml
+  services:
+    emacs-mkdocs-export:
+      image: emacs-mkdocs-export
+      container_name: emacs-mkdocs-export
+      volumes:
+        - type: bind
+          source: path/to/roam
+          target: /roam
+        - type: bind
+          source: path/to/output
+          target: /output
+        - type: bind
+          source: ./cache
+          target: /cache
+        - type: bind
+          source: ./config
+          target: /config
+#+END_SRC
+
+** CLI
+
+#+BEGIN_SRC sh
+  docker run --rm --name emacs-mkdocs-export --mount type=bind,source=path/to/roam,target=/roam --mount type=bind,source=path/to/output,target=/output --mount type=bind,source=./cache,target=/cache --mount type=bind,source=./config,target=/config emacs-mkdocs-export
+#+END_SRC
+
