@@ -1,11 +1,21 @@
 
 * Introduction
-This is a docker file containing =emacs= and the necessary packages to export to =mkdocs=.
+This is a docker file containing =emacs= and the necessary packages to export your =org-roam= knowledgebase to =mkdocs= compatible markdown.
 
 * How to use
-
+** Building the container
 First build the docker container:
-** Docker compose
+
+#+begin_src sh
+  docker build -t emacs-mkdocs-export .
+#+end_src
+
+** Running the container
+Remember to change the source paths of the roam folder and output folder.
+
+The resulting =.md= files will be placed in the =output= folder. This is the same folder as the =docs= directory in mkdocs.
+
+*** Docker compose
 
 Run the following with =docker compose run emacs-mkdocs-export= or =docker compose run --rm emacs-mkdocs-export=.
 
@@ -29,9 +39,13 @@ Run the following with =docker compose run emacs-mkdocs-export= or =docker compo
           target: /config
 #+END_SRC
 
-** CLI
+*** CLI
 
 #+BEGIN_SRC sh
   docker run --rm --name emacs-mkdocs-export --mount type=bind,source=path/to/roam,target=/roam --mount type=bind,source=path/to/output,target=/output --mount type=bind,source=./cache,target=/cache --mount type=bind,source=./config,target=/config emacs-mkdocs-export
 #+END_SRC
+** Customizing the export
+- Modify =/config/config.el= to influence the export process. For more information see the [[https://orgmode.org/manual/Advanced-Export-Configuration.html][org mode manual]].
+- A bibtex file can be provided to export references. The default location is =/config/library.bib=.
+- A custom CSL file can also be provided. The default is =springer-vancouver-brackets.csl= and is located in =/config=. If you want to use your own, either replace =springer-vancouver-brackets.csl= with a new one (while keeping the name), or add a new one in the =/config= folder and change the export processor in =/config/config.el= with ~(setq org-cite-export-processors '((t . (csl "YOUR-CSL-FILE.csl" "YOUR-CSL-FILE.csl"))))~.
 
