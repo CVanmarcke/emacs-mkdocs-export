@@ -142,7 +142,7 @@ returned as-is."
   :options '(bold code italic strike-through underline verbatim highlight))
 
 (defun ox-mkdocs/link-filter (text backend info)
-  (if (org-export-derived-backend-p backend 'md)
+  (if (and (org-export-derived-backend-p backend 'mkdocs) text)
       ;; remove <.link> en vervang door normale []()
       ;; (let* ((text (replace-regexp-in-string "<\\(.+\\)>" "[\\1](\\1)" text)))
       ;; 	)
@@ -178,7 +178,7 @@ as a communication channel."
    ))
 
 (defun org-mkdocs-paragraph (paragraph contents info)
-  (let ((contents (org-md-paragraph paragraph contents info)))
+  (let ((contents (or (org-md-paragraph paragraph contents info) "")))
     ;; Adds support for underlining (_text_)
 	(setq contents (replace-regexp-in-string
 					"\\([ (]\\)\\\\_\\(\\w.+\\w\\)\\\\_\\([ ).]\\)"
@@ -203,10 +203,11 @@ as a communication channel."
 (defun org-mkdocs-section (_section contents info)
   ;; Execute the section filter of org-md
   (let ((contents (org-md-section _section contents info)))
-	(when (plist-get info :mkdocs-pymdown-caption)
-	  (setq contents (replace-regexp-in-string
-					  "\\(!\\[img\\](.+\\)\\(\\.png\\|\\.jpe?g\\|\\.gif\\|\\.webp\\)\\()[ \t]*\n\\)\\(.+\\)+\n"
-					  "\\1\\2\\3/// caption\n\\4\n///\n\n" contents)))))
+    (when (and (plist-get info :mkdocs-pymdown-caption) contents)
+      (setq contents (replace-regexp-in-string
+		      "\\(!\\[img\\](.+\\)\\(\\.png\\|\\.jpe?g\\|\\.gif\\|\\.webp\\)\\()[ \t]*\n\\)\\(.+\\)+\n"
+		      "\\1\\2\\3/// caption\n\\4\n///\n\n" contents)))
+    contents))
 
 ;; TODO support for width
 ;; ![Image title](https://dummyimage.com/600x400/){ width="300" }
@@ -327,7 +328,7 @@ a communication channel."
 	    ;; prevents - tag ::\n  - nextitem -> - tag: - nextitem
 	    (and tag
 		 (format "**%s:** " (org-export-data tag info)))
-	    (if (and tag (s-equals-p (substring contents 0 1) "-"))
+	    (if (and tag contents (s-equals-p (substring contents 0 1) "-"))
 		(concat "\n" (replace-regexp-in-string "^" "    " contents))
 	      (and contents
 		   (org-trim (replace-regexp-in-string "^" "    " contents)))))))
