@@ -81,9 +81,12 @@
 (setopt org-export-with-section-numbers nil)
 ;; (setopt org-export-with-section-numbers 2)
 
-
 (defcustom org-mkdocs-highlight t
   "If non-nil export !!text!! as a highlight. "
+  :group 'org-export-mkdocs)
+
+(defcustom org-mkdocs-highlight-string "!!"
+  "The marker to emphasize"
   :group 'org-export-mkdocs)
 
 (defcustom org-mkdocs-admonition t
@@ -137,7 +140,6 @@ returned as-is."
 		:value-type (string :tag "Format string"))
   :options '(bold code italic strike-through underline verbatim))
 
-
 (defun ox-mkdocs/link-filter (text backend info)
   (if (org-export-derived-backend-p backend 'md)
       ;; remove <.link> en vervang door normale []()
@@ -185,11 +187,16 @@ as a communication channel."
 	  ;; Admonition
 	  (setq contents (replace-regexp-in-string
 					  "^! \\(.*\\)$" "!!! warning\n    \\1" contents)))
-	;; TODO misschien toch apart houden?
 	(when (plist-get info :mkdocs-highlight)
-	  ;; Highlight
-	  (setq contents (replace-regexp-in-string
-					  "\\([ \t\n]\\)!!\\([^\n\r\t!]+\\)!!\\([ \t\n]\\)" "\\1<em>\\2</em>\\3" contents)))
+	  (let ((regex-matcher (concat "\\([ \t\n]\\|^\\)" ;; before marker
+				       org-mkdocs-highlight-string
+				       "\\([^ \n\r\t!].+?[^ \n\r\t!]\\)" ;; inside markers
+				       org-mkdocs-highlight-string
+				       "\\([ \t\n.]\\|$\\)")) ;; after marker
+		(regex-replace (concat "\\1"
+				       (format (cdr (assq 'highlight org-mkdocs-text-markup-alist)) "\\2")
+				       "\\3")))
+	    (setq contents (replace-regexp-in-string regex-matcher regex-replace contents))))
 	contents))
 
 (defun org-mkdocs-section (_section contents info)
