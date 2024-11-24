@@ -46,7 +46,7 @@
 		     ;; (inlinetask . org-md--convert-to-html)
 		     ;; (inner-template . org-md-inner-template)
 		     ;; (italic . org-md-italic)
-		     ;; (item . org-md-item)
+		     (item . org-mkdocs-item)
 		     ;; (keyword . org-md-keyword)
                      ;; (latex-environment . org-md-latex-environment)
                      ;; (latex-fragment . org-md-latex-fragment)
@@ -300,6 +300,36 @@ INFO is a plist holding contextual information.  See
 
 (defun org-mkdocs/format-caption (caption)
   (format "/// caption\n%s\n///" caption))
+
+
+(defun org-mkdocs-item (item contents info)
+  "Transcode ITEM element into Markdown format.
+CONTENTS is the item contents.  INFO is a plist used as
+a communication channel."
+  (let* ((type (org-element-property :type (org-export-get-parent item)))
+	 (struct (org-element-property :structure item))
+	 (bullet (if (not (eq type 'ordered)) "-"
+		   (concat (number-to-string
+			    (car (last (org-list-get-item-number
+					(org-element-property :begin item)
+					struct
+					(org-list-prevs-alist struct)
+					(org-list-parents-alist struct)))))
+			   ".")))
+	 (tag (org-element-property :tag item)))
+    (concat bullet
+	    (make-string (- 4 (length bullet)) ? )
+	    (pcase (org-element-property :checkbox item)
+	      (`on "[X] ")
+	      (`trans "[-] ")
+	      (`off "[ ] "))
+	    ;; prevents - tag ::\n  - nextitem -> - tag: - nextitem
+	    (and tag
+		 (format "**%s:** " (org-export-data tag info)))
+	    (if (and tag (s-equals-p (substring contents 0 1) "-"))
+		(concat "\n" (replace-regexp-in-string "^" "    " contents))
+	      (and contents
+		   (org-trim (replace-regexp-in-string "^" "    " contents)))))))
 
 ;; ----------------------------
 ;; Makes the export process aware of org-roam, and preferentially makes it get links from the roam DB.
