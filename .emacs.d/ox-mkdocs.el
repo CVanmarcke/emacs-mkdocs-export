@@ -124,6 +124,7 @@
     (italic . "<i>%s</i>")
     (strike-through . "<del>%s</del>")
     (underline . "<u>%s</u>")
+    (highlight . "<em>%s</em>")
     (verbatim . "<code>%s</code>"))
   "Alist of HTML expressions to convert text markup.
 
@@ -138,7 +139,7 @@ returned as-is."
   :package-version '(Org . "8.0")
   :type '(alist :key-type (symbol :tag "Markup type")
 		:value-type (string :tag "Format string"))
-  :options '(bold code italic strike-through underline verbatim))
+  :options '(bold code italic strike-through underline verbatim highlight))
 
 (defun ox-mkdocs/link-filter (text backend info)
   (if (org-export-derived-backend-p backend 'md)
@@ -194,7 +195,7 @@ as a communication channel."
 				       org-mkdocs-highlight-string
 				       "\\([ \t\n.]\\|$\\)")) ;; after marker
 		(regex-replace (concat "\\1"
-				       (format (cdr (assq 'highlight org-mkdocs-text-markup-alist)) "\\2")
+				       (format (or (cdr (assq 'highlight org-mkdocs-text-markup-alist)) "%s") "\\2")
 				       "\\3")))
 	    (setq contents (replace-regexp-in-string regex-matcher regex-replace contents))))
 	contents))
