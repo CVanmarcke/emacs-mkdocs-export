@@ -74,6 +74,9 @@
     ;; (:with-sub-superscript nil '{} org-export-with-sub-superscripts) ;; TODO testen
     (:with-sub-superscript nil "^" '{}) ;Require curly braces to be wrapped around text to sub/super-scripted
     (:mkdocs-pymdown-caption nil nil org-mkdocs-pymdown-caption) ;; TODO testen
+    (:mkdocs-image-width nil nil org-mkdocs-export-image-width) ;; TODO testen
+    (:mkdocs-align-image nil "left" org-mkdocs-image-alignment) ;; TODO testen
+    (:mkdocs-image-lazy-loading nil nil org-mkdocs-lazy-load-image) ;; TODO testen
     (:mkdocs-admonition nil nil org-mkdocs-admonition) ;; TODO testen
     (:mkdocs-highlight nil nil org-mkdocs-highlight) ;; TODO testen
     ))
@@ -97,6 +100,23 @@
        admonition
    ///"
   :group 'org-export-mkdocs)
+
+(defcustom org-mkdocs-export-image-width t
+  "If non-nil, export the width of images if written in the format #ATTR_HTML :width ***
+The markdown extension attr_list needs to be enabled in mkdocs.yml"
+  :group 'org-export-mkdocs
+  :type 'boolean
+  :safe #'booleanp)
+
+(defcustom org-mkdocs-image-alignment "left"
+  "Aligns the image to a side. If nil, keep default"
+  :group 'org-export-mkdocs)
+
+(defcustom org-mkdocs-lazy-load-image t
+  "If non-nil, lazy load image"
+  :group 'org-export-mkdocs
+  :type 'boolean
+  :safe #'booleanp)
 
 (defcustom org-mkdocs-pymdown-caption t
   "If non-nil export captions for use with pymdownx.blocks.caption.
@@ -143,7 +163,7 @@ returned as-is."
 
 (defun ox-mkdocs/link-filter (text backend info)
   (if (and (org-export-derived-backend-p backend 'mkdocs) text)
-      ;; remove <.link> en vervang door normale []()
+      ;; remove <.link> and replace by normal []()
       ;; (let* ((text (replace-regexp-in-string "<\\(.+\\)>" "[\\1](\\1)" text)))
       ;; 	)
       ;; change ../folder/link.md with link.md
@@ -172,10 +192,7 @@ as a communication channel."
   (concat "tags:\n"
 	  (mapconcat (lambda (tag)
 		       (concat "  - " (substring-no-properties tag) "\n"))
-		     taglist )
-   ;; (dolist (tag taglist result)
-   ;;   (setq result (concat result "  - " (substring-no-properties tag) "\n")))
-   ))
+		     taglist )))
 
 (defun org-mkdocs-paragraph (paragraph contents info)
   (let ((contents (or (org-md-paragraph paragraph contents info) "")))
@@ -202,10 +219,11 @@ as a communication channel."
 
 (defun org-mkdocs-section (_section contents info)
   ;; Execute the section filter of org-md
+  ;; TODO: via de link functie doen
   (let ((contents (org-md-section _section contents info)))
     (when (and (plist-get info :mkdocs-pymdown-caption) contents)
       (setq contents (replace-regexp-in-string
-		      "\\(!\\[img\\](.+\\)\\(\\.png\\|\\.jpe?g\\|\\.gif\\|\\.webp\\)\\()[ \t]*\n\\)\\(.+\\)+\n"
+		      "\\(!\\[img\\](.+\\)\\(\\.png\\|\\.jpe?g\\|\\.gif\\|\\.webp\\)\\()[ \t]*\n\\)\\([^/].+\\)+\n"
 		      "\\1\\2\\3/// caption\n\\4\n///\n\n" contents)))
     contents))
 
@@ -270,24 +288,35 @@ INFO is a plist holding contextual information.  See
 		       description
 		       (org-export-get-reference destination info))))))))
      ((org-export-inline-image-p link org-html-inline-image-rules)
-      (let ((path (cond ((not (string-equal type "file"))
-			 (concat type ":" raw-path))
-			((not (file-name-absolute-p raw-path)) raw-path)
-			(t (expand-file-name raw-path))))
-	    (caption (org-export-data
-		      (org-export-get-caption
-		       (org-export-get-parent-element link))
-		      info)))
-	;; TODO setting voor aan of uit te zetten
-	(if (and (org-string-nw-p caption)
-		 (plist-get info :mkdocs-pymdown-caption))
-	    (format "![img](%s)\n%s" path (org-mkdocs/format-caption caption))
-	  (format "![img](%s)" path))
-	;; (format "![img](%s)"
-	;; 	(if (not (org-string-nw-p caption))
-	;; 	    path
-	;; 	  (format "%s \"%s\"" path caption)))
-	))
+      (let* ((path (cond ((not (string-equal type "file"))
+			  (concat type ":" raw-path))
+			 ((not (file-name-absolute-p raw-path)) raw-path)
+			 (t (expand-file-name raw-path))))
+	     (caption (org-export-data
+		       (org-export-get-caption
+			(org-export-get-parent-element link))
+		       info))
+	     ;; TODO: gewoon heel de plist van export read attribute doorsturen naar attr-list, zo nodig de defaults toevoegen (zonder overschrijven)
+	     ;; Evt met plist-put
+	     (width (and (plist-get info :mkdocs-image-width)
+			 (plist-get 
+			  (org-export-read-attribute
+			   :attr_html (org-export-get-parent-element link))
+			  :width)))
+	     (alignment (or (plist-get 
+			     (org-export-read-attribute
+			      :attr_html (org-export-get-parent-element link))
+			     :align)
+			    (plist-get info :mkdocs-align-image)))
+	     (lazy-load (and (plist-get info :mkdocs-image-lazy-loading)
+			     "lazy"))
+	     ;; TODO testen of dat geen probleem is dat dat met "" is
+	     (attr-list (org-mkdocs/make-attr-list (list :width width :align alignment :loading lazy-load))))
+	(concat (format "![img](%s)" path)
+		attr-list
+		(when (and (org-string-nw-p caption)
+			   (plist-get info :mkdocs-pymdown-caption))
+		  (concat "\n" (org-mkdocs/format-caption caption))))))
      ((string= type "coderef")
       (format (org-export-get-coderef-format path desc)
 	      (org-export-resolve-coderef path info)))
@@ -299,6 +328,19 @@ INFO is a plist holding contextual information.  See
 		  desc))))
      (t (if (not desc) (format "[%s](%s)" path path) ;; Changed from org-md-link
 	  (format "[%s](%s)" desc path))))))
+
+(defun org-mkdocs/make-attr-list (attr-plist)
+  "Makes an attribute list containing width and alignment (or others).
+See https://squidfunk.github.io/mkdocs-material/setup/extensions/python-markdown/#attribute-lists"
+  (when (and attr-plist (plistp attr-plist))
+    (format "{ %s}"
+	    (mapconcat (lambda (element)
+			 (when element
+			   (if (keywordp element)
+			       (when (plist-get attr-plist element)
+				 (format "%s=" (substring (symbol-name element) 1)))
+			     (format "\"%s\" " element))))
+		       attr-plist))))
 
 (defun org-mkdocs/format-caption (caption)
   (format "/// caption\n%s\n///" caption))
