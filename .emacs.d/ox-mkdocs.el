@@ -292,10 +292,17 @@ INFO is a plist holding contextual information.  See
 			  (concat type ":" raw-path))
 			 ((not (file-name-absolute-p raw-path)) raw-path)
 			 (t (expand-file-name raw-path))))
+	     (parent-element (org-export-get-parent-element link))
 	     (caption (org-export-data
-		       (org-export-get-caption
-			(org-export-get-parent-element link))
+		       (org-export-get-caption parent-element)
 		       info))
+	     (name (org-element-property :name parent-element))
+	     (anchor-id (when name
+			  (org-export-get-reference
+			   (org-export-resolve-fuzzy-link `(link (:path ,name)) info)
+			   info)))
+	     (anchor (when anchor-id
+		       (format "<a id=\"%s\"></a>\n" anchor-id)))
 	     ;; TODO: gewoon heel de plist van export read attribute doorsturen naar attr-list, zo nodig de defaults toevoegen (zonder overschrijven)
 	     ;; Evt met plist-put
 	     (width (and (plist-get info :mkdocs-image-width)
@@ -312,7 +319,8 @@ INFO is a plist holding contextual information.  See
 			     "lazy"))
 	     ;; TODO testen of dat geen probleem is dat dat met "" is
 	     (attr-list (org-mkdocs/make-attr-list (list :width width :align alignment :loading lazy-load))))
-	(concat (format "![img](%s)" path)
+	(concat anchor
+		(format "![img](%s)" path)
 		attr-list
 		(when (and (org-string-nw-p caption)
 			   (plist-get info :mkdocs-pymdown-caption))
@@ -454,7 +462,7 @@ non-nil."
   (org-mkdocs-export-with-lexical-bindings
    'org-export-to-buffer
    (list 'mkdocs "*Org mkdocs MD Export*"
-	 async subtreep visible-only nil nil (lambda () (text-mode)))))
+	 async subtreep visible-only nil nil '(lambda () (markdown-mode)))))
 
 
 ;;;###autoload
