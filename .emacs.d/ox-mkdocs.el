@@ -7,15 +7,6 @@
 (require 'ox-md)
 (require 'ox-publish)
 
-;; (package-initialize)
-;; (when (not (package-installed-p 'citeproc))
-;;   (package-refresh-contents)
-;;   (package-vc-install "https://github.com/andras-simonyi/citeproc-el" "54184baaff555b5c7993d566d75dd04ed485b5c0")
-;;   (package-install 'citeproc))
-;; (when (not (package-installed-p 'org-roam))
-;;   (package-install 'org-roam))
-;; (require 'citeproc)
-
 ;; TODO quote block via admonition
 
 (org-export-define-derived-backend 'mkdocs 'md
@@ -470,6 +461,32 @@ tree or a file name.  Assume LINK type is either \"id\" or
      ;; Otherwise, look for external files.
      (cdr (assoc id (plist-get info :id-alist))) ;;This one finds it
      (signal 'org-link-broken (list id)))))
+
+(defun org-link-doi-export (path desc backend info)
+  "Export a \"doi\" type link.
+PATH is the DOI name.  DESC is the description of the link, or
+nil.  BACKEND is a symbol representing the backend used for
+export.  INFO is a plist containing the export parameters."
+  (let ((uri (concat org-link-doi-server-url path)))
+    (pcase backend
+      (`html
+       (format "<a href=\"%s\">%s</a>" uri (or desc uri)))
+      (`mkdocs
+       (format "[%s](%s)" (or desc uri) uri))
+      (`md
+       (format "[%s](%s)" (or desc uri) uri))
+      (`latex
+       (if desc (format "\\href{%s}{%s}" uri desc)
+	 (format "\\url{%s}" uri)))
+      (`ascii
+       (if (not desc) (format "<%s>" uri)
+         (concat (format "[%s]" desc)
+		 (and (not (plist-get info :ascii-links-to-notes))
+		      (format " (<%s>)" uri)))))
+      (`texinfo
+       (if (not desc) (format "@uref{%s}" uri)
+         (format "@uref{%s, %s}" uri desc)))
+      (_ uri))))
 
 ;; TODO: gaat niet lukken met die lexical binding: moet vervangen worden in de definitie.
 
