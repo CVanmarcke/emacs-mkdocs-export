@@ -39,8 +39,7 @@
 		     ;; (example-block . org-md-example-block)
 		     ;; (export-block . org-md-export-block)
 		     ;; (fixed-width . org-md-example-block)
-		     ;; (headline . org-mkdocs-headline)
-		     (headline . org-md-headline)
+		     (headline . org-mkdocs-headline)
 		     ;; (horizontal-rule . org-md-horizontal-rule)
 		     ;; (inline-src-block . org-md-verbatim)
 		     ;; (inlinetask . org-md--convert-to-html)
@@ -203,8 +202,10 @@ as a communication channel."
 					contents))
 	(when (plist-get info :mkdocs-admonition)
 	  ;; Admonition
+	  ;; TODO: support for sub-items in the admonition (see TBC)
+	  ;; misschien door iteratief door de buffer te gaan....
 	  (setq contents (replace-regexp-in-string
-					  "^! \\(.*\\)$" "!!! warning\n    \\1" contents)))
+					  "^! \\(.*\\)$" "!!! warning \"\"\n\n    \\1" contents)))
 	(when (plist-get info :mkdocs-highlight)
 	  (let ((regex-matcher (concat "\\([ \t\n]\\|^\\)" ;; before marker
 				       org-mkdocs-highlight-string
@@ -351,8 +352,52 @@ See https://squidfunk.github.io/mkdocs-material/setup/extensions/python-markdown
 		       attr-plist))))
 
 (defun org-mkdocs/format-caption (caption)
-  (format "/// caption\n%s\n///" caption))
+  (format "/// caption\n%s\n///\n" caption))
 
+(defun org-mkdocs-headline (headline contents info)
+  "Transcode HEADLINE element into Markdown format.
+CONTENTS is the headline contents.  INFO is a plist used as
+a communication channel."
+  (unless (org-element-property :footnote-section-p headline)
+    (let* ((level (+ (org-export-get-relative-level headline info)
+                     (1- (plist-get info :md-toplevel-hlevel))))
+	   (title (org-export-data (org-element-property :title headline) info))
+	   (todo (and (plist-get info :with-todo-keywords)
+		      (let ((todo (org-element-property :todo-keyword
+							headline)))
+			(and todo (concat (org-export-data todo info) " ")))))
+	   (tags (and (plist-get info :with-tags)
+		      (let ((tag-list (org-export-get-tags headline info)))
+			(and tag-list
+			     (concat "     " (org-make-tag-string tag-list))))))
+	   (priority
+	    (and (plist-get info :with-priority)
+		 (let ((char (org-element-property :priority headline)))
+		   (and char (format "[#%c] " char)))))
+	   ;; Headline text without tags.
+	   (heading (concat todo priority title))
+	   (style (plist-get info :md-headline-style)))
+      (cond
+       ;; Cannot create a headline.  Fall-back to a list.
+       ((or (org-export-low-level-p headline info)
+	    (not (memq style '(atx setext)))
+	    (and (eq style 'atx) (> level 6))
+	    (and (eq style 'setext) (> level 2)))
+	(let ((bullet
+	       (if (not (org-export-numbered-headline-p headline info)) "-"
+		 (concat (number-to-string
+			  (car (last (org-export-get-headline-number
+				      headline info))))
+			 "."))))
+	  (concat bullet (make-string (- 4 (length bullet)) ?\s) heading tags "\n\n"
+		  (and contents (replace-regexp-in-string "^" "    " contents)))))
+       (t
+	(let ((anchor
+	       (format "<a id=\"%s\"></a>"
+			(or (org-element-property :CUSTOM_ID headline)
+			    (org-export-get-reference headline info)))))
+	  (concat (org-md--headline-title style level heading anchor tags)
+		  contents)))))))
 
 (defun org-mkdocs-item (item contents info)
   "Transcode ITEM element into Markdown format.
