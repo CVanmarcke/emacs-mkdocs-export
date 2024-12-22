@@ -13,10 +13,10 @@
   :filters-alist '((:filter-parse-tree . org-md-separate-elements))
   :menu-entry
   '(?m "Export to Markdown"
-       (
-	(?K "To mkdocs temporary buffer"
+       ((?K "To mkdocs temporary buffer"
 	    (lambda (a s v b) (org-mkdocs-export-as-markdown a s v)))
-	(?k "To mkdocs file" (lambda (a s v b) (org-mkdocs-export-to-markdown a s v)))))
+	(?k "To mkdocs file"
+	    (lambda (a s v b) (org-mkdocs-export-to-markdown a s v)))))
   :translate-alist '(;; (bold . org-md-bold)
 		     ;; (center-block . org-md--convert-to-html)
 		     ;; (code . org-md-verbatim)
@@ -67,8 +67,9 @@
     (:mkdocs-highlight nil nil org-mkdocs-highlight) ;; TODO testen
     ))
 
-(defcustom org-mkdocs-export-with-section-numbers nil)
-;; (setopt org-export-with-section-numbers 2)
+(defcustom org-mkdocs-export-with-section-numbers nil
+  "Should be nil, as there is currently no support for this.
+If you need numbered headings, see https://stackoverflow.com/questions/48029165/is-there-a-way-to-make-the-headings-sections-and-subsections-numbering-in-markd")
 
 (defcustom org-mkdocs-highlight t
   "If non-nil export !!text!! as a highlight. "
@@ -87,7 +88,12 @@
   Becomes
    /// warning
        admonition
-   ///"
+   ///
+
+  However the following must be in mkdocs.yml:
+
+  markdown_extensions:
+  - admonition"
   :type 'boolean
   :safe #'booleanp
   :group 'org-export-mkdocs)
@@ -500,19 +506,19 @@ export.  INFO is a plist containing the export parameters."
 
 ;; TODO: gaat niet lukken met die lexical binding: moet vervangen worden in de definitie.
 
-(defun org-mkdocs-export-with-lexical-bindings (function arglist)
-  (apply function arglist)
-  ;; (let ((org-html-text-markup-alist org-html-text-markup-alist))
-  ;;   (add-to-list 'org-html-text-markup-alist '(underline . "<u>%s</u>"))
-  ;;   ;; TODO aan filter toevoegen van de dispatch
+;; (defun org-mkdocs-export-with-lexical-bindings (function arglist)
+;;   (apply function arglist)
+;;   ;; (let ((org-html-text-markup-alist org-html-text-markup-alist))
+;;   ;;   (add-to-list 'org-html-text-markup-alist '(underline . "<u>%s</u>"))
+;;   ;;   ;; TODO aan filter toevoegen van de dispatch
 
-  ;;   ;; Export
-  ;;   (apply function arglist)
+;;   ;;   ;; Export
+;;   ;;   (apply function arglist)
 
-  ;;   ;; Cleanup
-  ;;   ;; (advice-remove 'org-export-resolve-id-link #'org-export-resolve-id-link-with-roam)
-  ;;   )
-  )
+;;   ;;   ;; Cleanup
+;;   ;;   ;; (advice-remove 'org-export-resolve-id-link #'org-export-resolve-id-link-with-roam)
+;;   ;;   )
+;;   )
 
 ;;;###autoload
 (defun org-mkdocs-export-as-markdown (&optional async subtreep visible-only)
