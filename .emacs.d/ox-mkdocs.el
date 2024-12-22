@@ -55,6 +55,7 @@
     ;; (:md-headline-style nil nil org-md-headline-style)
     (:html-text-markup-alist nil nil org-mkdocs-text-markup-alist)
     (:md-toplevel-hlevel nil 2 org-mkdocs-toplevel-hlevel)
+    (:section-numbers nil nil org-mkdocs-export-with-section-numbers)
     (:with-toc nil nil org-mkdocs-export-with-toc)
     ;; (:with-sub-superscript nil '{} org-export-with-sub-superscripts) ;; TODO testen
     (:with-sub-superscript nil "^" '{}) ;Require curly braces to be wrapped around text to sub/super-scripted
@@ -66,46 +67,58 @@
     (:mkdocs-highlight nil nil org-mkdocs-highlight) ;; TODO testen
     ))
 
-(setopt org-export-with-section-numbers nil)
+(defcustom org-mkdocs-export-with-section-numbers nil)
 ;; (setopt org-export-with-section-numbers 2)
 
 (defcustom org-mkdocs-highlight t
   "If non-nil export !!text!! as a highlight. "
+  :type 'boolean
+  :safe #'booleanp
   :group 'org-export-mkdocs)
 
 (defcustom org-mkdocs-highlight-string "!!"
   "The marker to emphasize"
+  :type 'string
   :group 'org-export-mkdocs)
 
 (defcustom org-mkdocs-admonition t
-  "If non-nil export admonitions
+  "If non-nil export admonitions.
   ! admonition
-  Becomes 
+  Becomes
    /// warning
        admonition
    ///"
+  :type 'boolean
+  :safe #'booleanp
   :group 'org-export-mkdocs)
 
 (defcustom org-mkdocs-export-image-width t
   "If non-nil, export the width of images if written in the format #ATTR_HTML :width ***
-The markdown extension attr_list needs to be enabled in mkdocs.yml"
+   The markdown extension attr_list needs to be enabled in mkdocs.yml"
   :group 'org-export-mkdocs
   :type 'boolean
   :safe #'booleanp)
 
-(defcustom org-mkdocs-image-alignment "left"
-  "Aligns the image to a side. If nil, keep default"
-  :group 'org-export-mkdocs)
+(defcustom org-mkdocs-image-alignment nil
+  "Adds an attribute to the image to align and wrap text to the left or right of the image.
+   If nil, keep default and do not wrap text around image.
+   The markdown extension attr_list needs to be enabled in mkdocs.yml"
+  :group 'org-export-mkdocs
+  :type '(choice
+	  (const :tag "Don't wrap text (inline)" nil)
+	  (const :tag "Wrap text to the left" "left")
+	  (const :tag "Wrap text to the right" "right")))
 
 (defcustom org-mkdocs-lazy-load-image t
-  "If non-nil, lazy load image"
+  "If non-nil, lazy load image.
+   The markdown extension attr_list needs to be enabled in mkdocs.yml"
   :group 'org-export-mkdocs
   :type 'boolean
   :safe #'booleanp)
 
 (defcustom org-mkdocs-pymdown-caption t
   "If non-nil export captions for use with pymdownx.blocks.caption.
-   
+
    ![img](image.png)
    /// caption
    captiontext
@@ -293,11 +306,11 @@ INFO is a plist holding contextual information.  See
 	     ;; TODO: gewoon heel de plist van export read attribute doorsturen naar attr-list, zo nodig de defaults toevoegen (zonder overschrijven)
 	     ;; Evt met plist-put
 	     (width (and (plist-get info :mkdocs-image-width)
-			 (plist-get 
+			 (plist-get
 			  (org-export-read-attribute
 			   :attr_html (org-export-get-parent-element link))
 			  :width)))
-	     (alignment (or (plist-get 
+	     (alignment (or (plist-get
 			     (org-export-read-attribute
 			      :attr_html (org-export-get-parent-element link))
 			     :align)
