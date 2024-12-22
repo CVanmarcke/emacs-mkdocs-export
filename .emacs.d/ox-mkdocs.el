@@ -16,12 +16,7 @@
        (
 	(?K "To mkdocs temporary buffer"
 	    (lambda (a s v b) (org-mkdocs-export-as-markdown a s v)))
-	(?k "To mkdocs file" (lambda (a s v b) (org-mkdocs-export-to-markdown a s v)))
-	;; (?o "To file and open"
-	;;     (lambda (a s v b)
-	;;       (if a (org-mkdocs-export-to-markdown t s v)
-	;; 	(org-open-file (org-md-export-to-markdown nil s v)))))
-	))
+	(?k "To mkdocs file" (lambda (a s v b) (org-mkdocs-export-to-markdown a s v)))))
   :translate-alist '(;; (bold . org-md-bold)
 		     ;; (center-block . org-md--convert-to-html)
 		     ;; (code . org-md-verbatim)
@@ -521,11 +516,13 @@ Export is done in a buffer named \"*Org mkdocs MD Export*\", which will
 be displayed when `org-export-show-temporary-export-buffer' is
 non-nil."
   (interactive)
-  (org-mkdocs-export-with-lexical-bindings
-   'org-export-to-buffer
-   (list 'mkdocs "*Org mkdocs MD Export*"
-	 async subtreep visible-only nil nil '(lambda () (markdown-mode)))))
-
+  (org-export-to-buffer 'mkdocs "*Org mkdocs MD Export*"
+    async subtreep visible-only nil nil (lambda () (markdown-mode)))
+  ;; (org-mkdocs-export-with-lexical-bindings
+  ;;  'org-export-to-buffer
+  ;;  (list 'mkdocs "*Org mkdocs MD Export*"
+  ;; 	 async subtreep visible-only nil nil '(lambda () (markdown-mode))))
+  )
 
 ;;;###autoload
 (defun org-mkdocs-export-to-markdown (&optional async subtreep visible-only)
@@ -550,9 +547,11 @@ contents of hidden elements.
 Return output file's name."
   (interactive)
   (let ((outfile (org-export-output-file-name ".md" subtreep)))
-    (org-mkdocs-export-with-lexical-bindings
-     'org-export-to-file
-     (list 'mkdocs outfile async subtreep visible-only))))
+    (org-export-to-file 'mkdocs outfile async subtreep visible-only)
+    ;; (org-mkdocs-export-with-lexical-bindings
+    ;;  'org-export-to-file
+    ;;  (list 'mkdocs outfile async subtreep visible-only))
+    ))
 
 
 ;; TODO: voor export lukt dat wel...
@@ -566,9 +565,11 @@ is the property list for the given project.  PUB-DIR is the
 publishing directory.
 
 Return output file name."
-  (org-mkdocs-export-with-lexical-bindings
-   'org-publish-org-to
-   (list 'mkdocs filename ".md" plist pub-dir)))
+  (org-publish-org-to 'mkdocs filename ".md" plist pub-dir)
+  ;; (org-mkdocs-export-with-lexical-bindings
+  ;;  'org-publish-org-to
+  ;;  (list 'mkdocs filename ".md" plist pub-dir))
+  )
 
 (provide 'ox-mkdocs)
 
