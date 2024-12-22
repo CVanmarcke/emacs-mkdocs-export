@@ -457,56 +457,49 @@ tree or a file name.  Assume LINK type is either \"id\" or
      (cdr (assoc id (plist-get info :id-alist))) ;;This one finds it
      (signal 'org-link-broken (list id)))))
 
-(defun org-link-doi-export (path desc backend info)
-  "Export a \"doi\" type link.
+;; Function is placed within 'with-eval-after-load as otherwise it could be loaded before org-link-doi, and be overwritten by the default function
+(with-eval-after-load 'org-link-doi
+  (defun org-link-doi-export (path desc backend info)
+    "Export a \"doi\" type link.
 PATH is the DOI name.  DESC is the description of the link, or
 nil.  BACKEND is a symbol representing the backend used for
 export.  INFO is a plist containing the export parameters."
-  (let ((uri (concat org-link-doi-server-url path)))
-    (pcase backend
-      (`html
-       (format "<a href=\"%s\">%s</a>" uri (or desc uri)))
-      (`mkdocs
-       (format "[%s](%s)" (or desc uri) uri))
-      (`md
-       (format "[%s](%s)" (or desc uri) uri))
-      (`latex
-       (if desc (format "\\href{%s}{%s}" uri desc)
-	 (format "\\url{%s}" uri)))
-      (`ascii
-       (if (not desc) (format "<%s>" uri)
-         (concat (format "[%s]" desc)
-		 (and (not (plist-get info :ascii-links-to-notes))
-		      (format " (<%s>)" uri)))))
-      (`texinfo
-       (if (not desc) (format "@uref{%s}" uri)
-         (format "@uref{%s, %s}" uri desc)))
-      (_ uri))))
+    (let ((uri (concat org-link-doi-server-url path)))
+      (pcase backend
+	(`html
+	 (format "<a href=\"%s\">%s</a>" uri (or desc uri)))
+	(`mkdocs
+	 (format "[%s](%s)" (or desc (format "doi: %s" path)) uri))
+	(`md
+	 (format "[%s](%s)" (or desc uri) uri))
+	(`latex
+	 (if desc (format "\\href{%s}{%s}" uri desc)
+	   (format "\\url{%s}" uri)))
+	(`ascii
+	 (if (not desc) (format "<%s>" uri)
+           (concat (format "[%s]" desc)
+		   (and (not (plist-get info :ascii-links-to-notes))
+			(format " (<%s>)" uri)))))
+	(`texinfo
+	 (if (not desc) (format "@uref{%s}" uri)
+           (format "@uref{%s, %s}" uri desc)))
+	(_ uri)))))
 
 ;; TODO: gaat niet lukken met die lexical binding: moet vervangen worden in de definitie.
 
 (defun org-mkdocs-export-with-lexical-bindings (function arglist)
-  (let (;; (outfile (org-export-output-file-name ".md" subtreep))
-		;; (org-md-toplevel-hlevel 2)
-		;; Prevents doing weird things when _ is in the text
-		;; (org-use-sub-superscripts '{})
-		;; (org-export-with-sub-superscripts '{}) ;;todo test
-		(org-html-text-markup-alist org-html-text-markup-alist)
-		(org-export-filter-link-functions org-export-filter-link-functions))
+  (apply function arglist)
+  ;; (let ((org-html-text-markup-alist org-html-text-markup-alist))
+  ;;   (add-to-list 'org-html-text-markup-alist '(underline . "<u>%s</u>"))
+  ;;   ;; TODO aan filter toevoegen van de dispatch
 
-    (add-to-list 'org-html-text-markup-alist '(underline . "<u>%s</u>"))
-    ;; TODO aan filter toevoegen van de dispatch
-    ;; (add-hook 'org-export-filter-link-functions #'ox-mkdocs/link-filter) ;; not ran as local because errors
-    ;; (advice-add 'org-export-resolve-id-link :override #'org-export-resolve-id-link-with-roam)
+  ;;   ;; Export
+  ;;   (apply function arglist)
 
-    ;; Export
-    (apply function arglist)
-
-    ;; Cleanup
-    ;; (advice-remove 'org-export-resolve-id-link #'org-export-resolve-id-link-with-roam)
-    )
+  ;;   ;; Cleanup
+  ;;   ;; (advice-remove 'org-export-resolve-id-link #'org-export-resolve-id-link-with-roam)
+  ;;   )
   )
-
 
 ;;;###autoload
 (defun org-mkdocs-export-as-markdown (&optional async subtreep visible-only)
