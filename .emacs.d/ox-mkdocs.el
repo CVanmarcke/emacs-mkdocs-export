@@ -48,7 +48,8 @@
 		     ;; (src-block . org-md-example-block)
 		     ;; (table . org-md--convert-to-html)
 		     (template . org-mkdocs-template)
-		     (verbatim . org-md-verbatim))
+		     ;; (verbatim . org-md-verbatim)
+		     )
   :options-alist
   '(;; (:md-footnote-format nil nil org-md-footnote-format)
     ;; (:md-footnotes-section nil nil org-md-footnotes-section)
@@ -57,6 +58,7 @@
     (:md-toplevel-hlevel nil 2 org-mkdocs-toplevel-hlevel)
     (:section-numbers nil nil org-mkdocs-export-with-section-numbers)
     (:with-toc nil nil org-mkdocs-export-with-toc)
+    (:with-tags nil "tags" org-mkdocs-export-with-tags)
     ;; (:with-sub-superscript nil '{} org-export-with-sub-superscripts) ;; TODO testen
     (:with-sub-superscript nil "^" '{}) ;Require curly braces to be wrapped around text to sub/super-scripted
     (:mkdocs-pymdown-caption nil nil org-mkdocs-pymdown-caption) ;; TODO testen
@@ -66,6 +68,8 @@
     (:mkdocs-admonition nil nil org-mkdocs-admonition) ;; TODO testen
     (:mkdocs-highlight nil nil org-mkdocs-highlight) ;; TODO testen
     ))
+
+(setopt org-list-allow-alphabetical t)
 
 (defcustom org-mkdocs-export-with-section-numbers nil
   "Should be nil, as there is currently no support for this.
@@ -133,6 +137,10 @@ If you need numbered headings, see https://stackoverflow.com/questions/48029165/
 
 (defcustom org-mkdocs-export-with-toc nil
   "Export with toc. If nil, do not export with toc."
+  :group 'org-export-mkdocs)
+
+(defcustom org-mkdocs-export-with-tags nil
+  "By default, do not export with headline tags. Export with tags if non-nil."
   :group 'org-export-mkdocs)
 
 (defcustom org-mkdocs-toplevel-hlevel 2
@@ -482,7 +490,8 @@ tree or a file name.  Assume LINK type is either \"id\" or
     "Export a \"doi\" type link.
 PATH is the DOI name.  DESC is the description of the link, or
 nil.  BACKEND is a symbol representing the backend used for
-export.  INFO is a plist containing the export parameters."
+export.  INFO is a plist containing the export parameters.
+This function is changed by `ox-mkdocs to support exporting to mkdocs compatible md files."
     (let ((uri (concat org-link-doi-server-url path)))
       (pcase backend
 	(`html
@@ -504,22 +513,6 @@ export.  INFO is a plist containing the export parameters."
            (format "@uref{%s, %s}" uri desc)))
 	(_ uri)))))
 
-;; TODO: gaat niet lukken met die lexical binding: moet vervangen worden in de definitie.
-
-;; (defun org-mkdocs-export-with-lexical-bindings (function arglist)
-;;   (apply function arglist)
-;;   ;; (let ((org-html-text-markup-alist org-html-text-markup-alist))
-;;   ;;   (add-to-list 'org-html-text-markup-alist '(underline . "<u>%s</u>"))
-;;   ;;   ;; TODO aan filter toevoegen van de dispatch
-
-;;   ;;   ;; Export
-;;   ;;   (apply function arglist)
-
-;;   ;;   ;; Cleanup
-;;   ;;   ;; (advice-remove 'org-export-resolve-id-link #'org-export-resolve-id-link-with-roam)
-;;   ;;   )
-;;   )
-
 ;;;###autoload
 (defun org-mkdocs-export-as-markdown (&optional async subtreep visible-only)
   "Export current buffer to a mkdocs compatible markdown buffer.
@@ -529,12 +522,7 @@ be displayed when `org-export-show-temporary-export-buffer' is
 non-nil."
   (interactive)
   (org-export-to-buffer 'mkdocs "*Org mkdocs MD Export*"
-    async subtreep visible-only nil nil (lambda () (markdown-mode)))
-  ;; (org-mkdocs-export-with-lexical-bindings
-  ;;  'org-export-to-buffer
-  ;;  (list 'mkdocs "*Org mkdocs MD Export*"
-  ;; 	 async subtreep visible-only nil nil '(lambda () (markdown-mode))))
-  )
+    async subtreep visible-only nil nil (lambda () (markdown-mode))))
 
 ;;;###autoload
 (defun org-mkdocs-export-to-markdown (&optional async subtreep visible-only)
@@ -559,14 +547,7 @@ contents of hidden elements.
 Return output file's name."
   (interactive)
   (let ((outfile (org-export-output-file-name ".md" subtreep)))
-    (org-export-to-file 'mkdocs outfile async subtreep visible-only)
-    ;; (org-mkdocs-export-with-lexical-bindings
-    ;;  'org-export-to-file
-    ;;  (list 'mkdocs outfile async subtreep visible-only))
-    ))
-
-
-;; TODO: voor export lukt dat wel...
+    (org-export-to-file 'mkdocs outfile async subtreep visible-only)))
 
 ;;;###autoload
 (defun org-mkdocs-publish-to-md (plist filename pub-dir)
@@ -577,11 +558,7 @@ is the property list for the given project.  PUB-DIR is the
 publishing directory.
 
 Return output file name."
-  (org-publish-org-to 'mkdocs filename ".md" plist pub-dir)
-  ;; (org-mkdocs-export-with-lexical-bindings
-  ;;  'org-publish-org-to
-  ;;  (list 'mkdocs filename ".md" plist pub-dir))
-  )
+  (org-publish-org-to 'mkdocs filename ".md" plist pub-dir))
 
 (provide 'ox-mkdocs)
 
