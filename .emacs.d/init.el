@@ -60,9 +60,9 @@
 
 (message "Emacs: populating custom config")
 (when (not (file-exists-p "/config/config.el"))
-  (f-copy "~/config-default/config.el" "/config/config.el"))
+  (copy-file "/root/config-default/config.el" "/config/config.el"))
 (when (not (file-exists-p "/config/springer-vancouver-brackets.csl"))
-  (f-copy "~/config-default/springer-vancouver-brackets.csl" "/config/springer-vancouver-brackets.csl"))
+  (copy-file "/root/config-default/springer-vancouver-brackets.csl" "/config/springer-vancouver-brackets.csl"))
 
 (message "Emacs: loading custom config (/config/config.el)")
 (load "/config/config.el")

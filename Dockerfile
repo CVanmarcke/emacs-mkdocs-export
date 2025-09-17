@@ -2,7 +2,7 @@ FROM silex/emacs:29.4-alpine
 
 VOLUME /cache
 
-COPY ./config-default /root/config-default
+ADD ./config-default /root/config-default
 COPY ./.emacs.d/ /root/.emacs.d/
 RUN ["emacs", "-batch", "-l", "/root/.emacs.d/install-packages.el"]
 
