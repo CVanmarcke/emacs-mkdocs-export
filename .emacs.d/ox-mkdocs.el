@@ -183,22 +183,29 @@ returned as-is."
       (replace-regexp-in-string "(\\.\\./.+?/\\(.+\\))" "(\\1)" text)
     text))
 
-(defun org-mkdocs-template (contents _info)
+(defun org-mkdocs-template (contents info)
   "Return complete document string after Markdown conversion.
 CONTENTS is the transcoded contents string.  INFO is a plist used
 as a communication channel."
   (let* ((taglist (org-get-tags))
-	 (title (org-get-title)
-	      ;; (org-element-interpret-data (plist-get contents :title))
-	      )
-       (id (cdr (assoc "ID" (org-entry-properties)))))
+	 (title (org-get-title))
+	 (id (cdr (assoc "ID" (org-entry-properties))))
+	 (created (if (org-property-values "CREATED")
+		      (format-time-string "%F" (date-to-time (car (org-property-values "CREATED"))))))
+	 (last-changed
+	  (format-time-string
+	   "%F" (file-attribute-modification-time
+		 (file-attributes (buffer-file-name))))))
     (concat "---\n"
-            "title: \"" title "\"\n"
-            (mkdocs/format-tags-to-yaml taglist)
-            "context_id: " id "\n"
-            "---\n"
-            "# " title "\n"
-            contents)))
+	    "title: \"" title "\"\n"
+	    (mkdocs/format-tags-to-yaml taglist)
+	    "context_id: " id "\n"
+	    "date:\n"
+	    (when created (concat "  created: " created "\n"))
+	    "  updated: " last-changed "\n"
+	    "---\n"
+	    "# " title "\n"
+	    contents)))
 
 (defun mkdocs/format-tags-to-yaml (taglist)
   (concat "tags:\n"
